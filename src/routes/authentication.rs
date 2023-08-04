@@ -1,6 +1,7 @@
 use actix_web::{web, HttpResponse};
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
+use sqlx::types::chrono::NaiveDateTime;
 use uuid::Uuid;
 
 use crate::store::Store;
@@ -13,8 +14,8 @@ pub struct NewAccount {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Account {
     pub id: Uuid,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
     pub name: String,
 }
 
@@ -22,8 +23,8 @@ impl Account {
     fn new(name: &str) -> Self {
         Account {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: Utc::now().naive_utc(),
+            updated_at: Utc::now().naive_utc(),
             name: name.to_string(),
         }
     }
