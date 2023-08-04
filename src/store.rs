@@ -23,7 +23,7 @@ impl Store {
         })
     }
 
-    pub async fn create_user(self, account: Account) -> Result<bool, sqlx::Error> {
+    pub async fn insert_user(self, account: Account) -> Result<bool, sqlx::Error> {
         match sqlx::query(
             "INSERT INTO users (id, created_at, updated_at, name, api_key)
             VALUES ($1, $2, $3, $4, encode(random()::text:bytea), 'hex')
