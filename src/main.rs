@@ -1,11 +1,13 @@
 use std::net::TcpListener;
 
-use actix_web::{dev::Server, web, App, HttpResponse, HttpServer, Responder, Result};
+use actix_web::{dev::Server, web, App, HttpResponse, HttpServer, Result};
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions, PgSslMode};
 use sqlx::PgPool;
+
+mod routes;
 
 const ADDR: &str = "127.0.0.1";
 
@@ -68,8 +70,12 @@ fn run(listener: TcpListener, db_pool: PgPool) -> Result<Server, std::io::Error>
 
     let server = HttpServer::new(move || {
         App::new()
-            .configure(users)
+            .configure(routes::user::users)
             .route("/healthcheck", web::get().to(health_check))
+            .route(
+                "/register",
+                web::post().to(routes::authentication::register),
+            )
             .app_data(db_pool.clone())
     })
     .listen(listener)?
@@ -80,35 +86,4 @@ fn run(listener: TcpListener, db_pool: PgPool) -> Result<Server, std::io::Error>
 
 async fn health_check() -> HttpResponse {
     HttpResponse::Ok().finish()
-}
-
-fn users(cfg: &mut web::ServiceConfig) {
-    cfg.service(
-        web::resource("/users")
-            .route(web::post().to(create_user))
-            .route(web::get().to(get_user)),
-    );
-}
-
-// This is still for testing, the real struct will be defined later
-#[derive(Deserialize)]
-struct User {
-    name: String,
-}
-
-async fn create_user(user: web::Json<User>) -> Result<String> {
-    /*
-     * sqlx::query!(
-     *      r#"
-     *          INSERT INTO user (id, created_at, updated_at, name)
-     *          VALUES ($1, $2, $3, $4)
-     *      "
-     * )
-     */
-
-    Ok(format!("Creating user: {}", user.name))
-}
-
-async fn get_user() -> impl Responder {
-    HttpResponse::Ok().body("getting user".to_owned())
 }
