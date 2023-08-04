@@ -1,4 +1,7 @@
-use sqlx::{postgres::PgPoolOptions, PgPool};
+use sqlx::{
+    postgres::{PgPoolOptions, PgRow},
+    PgPool, Row,
+};
 
 use crate::routes::authentication::Account;
 
@@ -37,6 +40,22 @@ impl Store {
         .await
         {
             Ok(_) => Ok(true),
+            Err(e) => Err(e),
+        }
+    }
+
+    pub async fn get_users(self) -> Result<Vec<Account>, sqlx::Error> {
+        match sqlx::query("SELECT * FROM users")
+            .map(|row: PgRow| Account {
+                id: row.get("id"),
+                created_at: row.get("created_at"),
+                updated_at: row.get("updated_at"),
+                name: row.get("name"),
+            })
+            .fetch_all(&self.connection)
+            .await
+        {
+            Ok(accounts) => Ok(accounts),
             Err(e) => Err(e),
         }
     }
