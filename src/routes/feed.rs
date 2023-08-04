@@ -13,6 +13,7 @@ pub struct Feed {
     pub name: String,
     pub url: String,
     pub user_id: Uuid,
+    pub last_fetched_at: Option<NaiveDateTime>,
 }
 
 pub fn feed(cfg: &mut web::ServiceConfig) {
