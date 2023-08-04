@@ -11,12 +11,15 @@ const ADDR: &str = "127.0.0.1";
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    let store = Store::new(env::var("DATABASE_URL").unwrap().as_str()).await;
     dotenv::dotenv().ok();
+
+    let store = Store::new(env::var("DATABASE_URL").unwrap().as_str())
+        .await
+        .unwrap();
 
     let listener = TcpListener::bind(ADDR)?;
 
-    run(listener, store.unwrap())?.await?;
+    run(listener, store)?.await?;
 
     Ok(())
 }
