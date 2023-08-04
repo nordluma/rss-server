@@ -3,7 +3,7 @@ use sqlx::{
     PgPool, Row,
 };
 
-use crate::routes::authentication::Account;
+use crate::routes::{authentication::Account, feed::Feed};
 
 #[derive(Debug, Clone)]
 pub struct Store {
@@ -56,6 +56,28 @@ impl Store {
             .await
         {
             Ok(accounts) => Ok(accounts),
+            Err(e) => Err(e),
+        }
+    }
+
+    pub async fn get_feeds(self) -> Result<Vec<Feed>, sqlx::Error> {
+        match sqlx::query(
+            "SELECT id, created_at, updated_at, name, url, user_id, last_fetched_at
+            FROM feeds",
+        )
+        .map(|row: PgRow| Feed {
+            id: row.get("id"),
+            created_at: row.get("created_at"),
+            updated_at: row.get("updated_at"),
+            name: row.get("name"),
+            url: row.get("url"),
+            user_id: row.get("user_id"),
+            last_fetched_at: row.get("last_fetched_at"),
+        })
+        .fetch_all(&self.connection)
+        .await
+        {
+            Ok(feeds) => Ok(feeds),
             Err(e) => Err(e),
         }
     }
