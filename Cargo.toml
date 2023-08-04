@@ -18,4 +18,12 @@ dotenv = "0.15.0"
 
 [dependencies.sqlx]
 version = "0.7.1"
-features = ["postgres", "migrate", "uuid", "macros", "chrono", "tls-rustls"]
+features = [
+    "postgres",
+    "migrate",
+    "uuid",
+    "macros",
+    "chrono",
+    "tls-rustls",
+    "runtime-tokio",
+]
