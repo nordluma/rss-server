@@ -1,20 +1,38 @@
-use actix_web::{web, Result};
-use serde::Deserialize;
+use actix_web::{web, HttpResponse};
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
-#[derive(Debug, Deserialize)]
-pub struct NewUser {
+use crate::store::Store;
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct NewAccount {
     name: String,
 }
 
-pub async fn register(user: web::Json<NewUser>) -> Result<String> {
-    /*
-     * sqlx::query!(
-     *      r#"
-     *          INSERT INTO user (id, created_at, updated_at, name)
-     *          VALUES ($1, $2, $3, $4)
-     *      "
-     * )
-     */
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct Account {
+    pub id: Uuid,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub name: String,
+}
 
-    Ok(format!("Creating user: {}", user.name))
+impl Account {
+    fn new(name: &str) -> Self {
+        Account {
+            id: Uuid::new_v4(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            name: name.to_string(),
+        }
+    }
+}
+
+pub async fn register(user: web::Json<NewAccount>, store: web::Data<Store>) -> HttpResponse {
+    let account = Account::new(&user.name);
+    match Store::create_user(store.get_ref().clone(), account).await {
+        Ok(_) => HttpResponse::Ok().finish(),
+        Err(_) => HttpResponse::BadRequest().finish(),
+    }
 }
