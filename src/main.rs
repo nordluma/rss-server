@@ -17,7 +17,7 @@ async fn main() -> Result<(), std::io::Error> {
         .await
         .unwrap();
 
-    let listener = TcpListener::bind(ADDR)?;
+    let listener = TcpListener::bind((ADDR, 8080))?;
 
     run(listener, store)?.await?;
 
