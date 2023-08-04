@@ -30,6 +30,7 @@ fn run(listener: TcpListener, store: Store) -> Result<Server, std::io::Error> {
     let server = HttpServer::new(move || {
         App::new()
             .configure(routes::user::users)
+            .configure(routes::feed::feed)
             .route("/healthcheck", web::get().to(health_check))
             .route(
                 "/register",
