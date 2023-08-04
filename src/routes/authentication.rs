@@ -31,8 +31,9 @@ impl Account {
 }
 
 pub async fn register(user: web::Json<NewAccount>, store: web::Data<Store>) -> HttpResponse {
+    let store = store.get_ref().to_owned();
     let account = Account::new(&user.name);
-    match Store::insert_user(store.get_ref().clone(), account).await {
+    match Store::insert_user(store, account).await {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::BadRequest().finish(),
     }
