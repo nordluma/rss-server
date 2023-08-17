@@ -15,6 +15,7 @@ serde-aux = "4.2.0"
 tokio = { version = "1.29.1", features = ["full"] }
 uuid = { version = "1.4.1", features = ["v4", "serde"] }
 dotenv = "0.15.0"
+futures-util = "0.3.28"
 
 [dependencies.sqlx]
 version = "0.7.1"
