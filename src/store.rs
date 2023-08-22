@@ -3,7 +3,10 @@ use sqlx::{
     PgPool, Row,
 };
 
-use crate::routes::{authentication::Account, feed::Feed};
+use crate::routes::{
+    authentication::{Account, CreateAccount},
+    feed::Feed,
+};
 
 #[derive(Debug, Clone)]
 pub struct Store {
@@ -26,7 +29,7 @@ impl Store {
         })
     }
 
-    pub async fn insert_user(self, account: Account) -> Result<bool, sqlx::Error> {
+    pub async fn insert_user(self, account: CreateAccount) -> Result<bool, sqlx::Error> {
         match sqlx::query(
             "INSERT INTO users (id, created_at, updated_at, name, api_key)
             VALUES ($1, $2, $3, $4, encode(random()::text:bytea), 'hex')
@@ -44,9 +47,9 @@ impl Store {
         }
     }
 
-    pub async fn get_users(self) -> Result<Vec<Account>, sqlx::Error> {
+    pub async fn get_users(self) -> Result<Vec<CreateAccount>, sqlx::Error> {
         match sqlx::query("SELECT * FROM users")
-            .map(|row: PgRow| Account {
+            .map(|row: PgRow| CreateAccount {
                 id: row.get("id"),
                 created_at: row.get("created_at"),
                 updated_at: row.get("updated_at"),
@@ -56,6 +59,27 @@ impl Store {
             .await
         {
             Ok(accounts) => Ok(accounts),
+            Err(e) => Err(e),
+        }
+    }
+
+    pub async fn get_user_by_api_key(self, api_key: &str) -> Result<Account, sqlx::Error> {
+        match sqlx::query(
+            "SELECT id, created_at, updated_at, name, api_key FROM users 
+            WHERE api_key = $1",
+        )
+        .bind(api_key)
+        .map(|row: PgRow| Account {
+            id: row.get("id"),
+            created_at: row.get("created_at"),
+            updated_at: row.get("updated_at"),
+            name: row.get("name"),
+            api_key: row.get("api_key"),
+        })
+        .fetch_optional(&self.connection)
+        .await
+        {
+            Ok(user) => Ok(user),
             Err(e) => Err(e),
         }
     }
