@@ -63,7 +63,7 @@ impl Store {
         }
     }
 
-    pub async fn get_user_by_api_key(self, api_key: &str) -> Result<Account, sqlx::Error> {
+    pub async fn get_user_by_api_key(self, api_key: &str) -> Result<Option<Account>, sqlx::Error> {
         match sqlx::query(
             "SELECT id, created_at, updated_at, name, api_key FROM users 
             WHERE api_key = $1",
