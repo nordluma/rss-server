@@ -49,6 +49,7 @@ pub async fn register(user: web::Json<NewAccount>, store: web::Data<Store>) -> H
     }
 }
 
+#[allow(unused)]
 pub async fn get_user_by_api_key(api_key: &str, store: web::Data<Store>) -> HttpResponse {
     let store = store.get_ref().to_owned();
 

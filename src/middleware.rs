@@ -2,12 +2,12 @@ use std::future::{ready, Ready};
 
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    error::ErrorUnauthorized,
-    Error as ActixError,
+    error::{ErrorInternalServerError, ErrorUnauthorized},
+    web, Error as ActixError, HttpMessage,
 };
 use futures_util::future::LocalBoxFuture;
 
-use crate::routes::authentication::get_user_by_api_key;
+use crate::{routes::authentication::Account, store::Store};
 
 pub struct Auth;
 
@@ -44,10 +44,11 @@ where
 
     forward_ready!(service);
 
-    fn call(&self, req: ServiceRequest) -> Self::Future {
+    fn call<'a>(&self, req: ServiceRequest) -> Self::Future {
+        // This is still messy, will fix it later when I find a better waymid
         let auth_header_opt = req.headers().get("Authorization");
+
         let auth_token = match auth_header_opt {
-            // This is still messy, will fix it later when I find a better way
             Some(token) => token.to_str().unwrap_or("").to_string(),
             None => return Box::pin(async move { Err(ErrorUnauthorized("Invalid token")) }),
         };
@@ -57,13 +58,27 @@ where
             Err(_) => return Box::pin(async move { Err(ErrorUnauthorized("Invalid token")) }),
         };
 
-        validate_api_key(api_key);
+        let store = match req.app_data::<web::Data<Store>>() {
+            Some(store) => store.get_ref().clone(),
+            None => unreachable!(),
+        };
 
-        let fut = self.service.call(req);
         Box::pin(async move {
-            let res = fut.await?;
+            let opt_user = match Store::get_user_by_api_key(store, api_key).await {
+                Ok(user) => user,
+                Err(e) => return Err(ErrorInternalServerError(e)),
+            };
 
-            Ok(res)
+            if let None = &opt_user {
+                return Err(ErrorUnauthorized("Invalid token"));
+            }
+
+            req.extensions_mut().insert(opt_user.unwrap());
+
+            let fut = self.service.call(req);
+            let res = fut.await;
+
+            res
         })
     }
 }
@@ -84,9 +99,4 @@ fn get_api_key(header: &str) -> Result<&str, ActixError> {
     }
 
     Ok(tokens_parts[1])
-}
-
-fn validate_api_key(token: &str) {
-    // FIXME: need to access the store to get the connection string for db
-    match get_user_by_api_key(token, store) {}
 }
