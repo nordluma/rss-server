@@ -7,7 +7,7 @@ use actix_web::{
 };
 use futures_util::future::LocalBoxFuture;
 
-use crate::{routes::authentication::Account, store::Store};
+use crate::store::Store;
 
 pub struct Auth;
 
