@@ -76,14 +76,13 @@ where
                 Err(e) => return Err(ErrorInternalServerError(e)),
             };
 
-            if let None = &opt_user {
+            if opt_user.is_none() {
                 return Err(ErrorUnauthorized("Invalid token"));
             }
 
             req.extensions_mut().insert(opt_user.unwrap());
-            let res = srv.call(req).await;
 
-            res
+            srv.call(req).await
         }
         .boxed_local()
     }
