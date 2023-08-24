@@ -1,19 +1,23 @@
-use std::future::{ready, Ready};
+use std::{
+    future::{ready, Ready},
+    rc::Rc,
+};
 
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
     error::{ErrorInternalServerError, ErrorUnauthorized},
+    http::header::AUTHORIZATION,
     web, Error as ActixError, HttpMessage,
 };
-use futures_util::future::LocalBoxFuture;
+use futures_util::{future::LocalBoxFuture, FutureExt};
 
 use crate::store::Store;
 
-pub struct Auth;
+pub struct AuthMiddlewareFactory;
 
-impl<S, B> Transform<S, ServiceRequest> for Auth
+impl<S, B> Transform<S, ServiceRequest> for AuthMiddlewareFactory
 where
-    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = ActixError>,
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = ActixError> + 'static,
     S::Future: 'static,
     B: 'static,
 {
@@ -24,17 +28,19 @@ where
     type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
-        ready(Ok(AuthMiddleware { service }))
+        ready(Ok(AuthMiddleware {
+            service: Rc::new(service),
+        }))
     }
 }
 
 pub struct AuthMiddleware<S> {
-    service: S,
+    service: Rc<S>,
 }
 
 impl<S, B> Service<ServiceRequest> for AuthMiddleware<S>
 where
-    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = ActixError>,
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = ActixError> + 'static,
     S::Future: 'static,
     B: 'static,
 {
@@ -44,26 +50,27 @@ where
 
     forward_ready!(service);
 
-    fn call<'a>(&self, req: ServiceRequest) -> Self::Future {
-        // This is still messy, will fix it later when I find a better waymid
-        let auth_header_opt = req.headers().get("Authorization");
+    fn call(&self, req: ServiceRequest) -> Self::Future {
+        // This is still messy, will fix it later when I find a better way
+        let srv = self.service.clone();
+        let auth_header_opt = req.headers().get(AUTHORIZATION).cloned();
 
-        let auth_token = match auth_header_opt {
-            Some(token) => token.to_str().unwrap_or("").to_string(),
-            None => return Box::pin(async move { Err(ErrorUnauthorized("Invalid token")) }),
-        };
+        async move {
+            let auth_token = match auth_header_opt {
+                Some(token) => token.to_str().unwrap_or("").to_string(),
+                None => return Err(ErrorUnauthorized("Invalid token")),
+            };
 
-        let api_key = match get_api_key(auth_token.as_str()) {
-            Ok(key) => key,
-            Err(_) => return Box::pin(async move { Err(ErrorUnauthorized("Invalid token")) }),
-        };
+            let api_key = match get_api_key(auth_token.as_str()) {
+                Ok(key) => key,
+                Err(_) => return Err(ErrorUnauthorized("Invalid token")),
+            };
 
-        let store = match req.app_data::<web::Data<Store>>() {
-            Some(store) => store.get_ref().clone(),
-            None => unreachable!(),
-        };
+            let store = match req.app_data::<web::Data<Store>>() {
+                Some(store) => store.get_ref().clone(),
+                None => unreachable!(),
+            };
 
-        Box::pin(async move {
             let opt_user = match Store::get_user_by_api_key(store, api_key).await {
                 Ok(user) => user,
                 Err(e) => return Err(ErrorInternalServerError(e)),
@@ -74,12 +81,11 @@ where
             }
 
             req.extensions_mut().insert(opt_user.unwrap());
-
-            let fut = self.service.call(req);
-            let res = fut.await;
+            let res = srv.call(req).await;
 
             res
-        })
+        }
+        .boxed_local()
     }
 }
 

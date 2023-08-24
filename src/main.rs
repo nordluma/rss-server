@@ -3,7 +3,7 @@ use std::net::TcpListener;
 
 use actix_web::{dev::Server, web, App, HttpResponse, HttpServer, Result};
 
-use crate::{middleware::Auth, store::Store};
+use crate::{middleware::auth::AuthMiddlewareFactory, store::Store};
 
 mod middleware;
 mod routes;
@@ -34,7 +34,7 @@ fn run(listener: TcpListener, store: Store) -> Result<Server, std::io::Error> {
             .configure(routes::user::users)
             .configure(routes::feed::feed)
             .route("/healthcheck", web::get().to(health_check))
-            .wrap(Auth)
+            .wrap(AuthMiddlewareFactory)
             .route(
                 "/register",
                 web::post().to(routes::authentication::register),
