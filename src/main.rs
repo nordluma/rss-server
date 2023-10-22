@@ -3,11 +3,7 @@ use std::net::TcpListener;
 
 use actix_web::{dev::Server, web, App, HttpResponse, HttpServer, Result};
 
-use crate::{middleware::auth::AuthMiddlewareFactory, store::Store};
-
-mod middleware;
-mod routes;
-mod store;
+use rss_server::{middleware::AuthMiddlewareFactory, routes, store::Store};
 
 const ADDR: &str = "127.0.0.1";
 
