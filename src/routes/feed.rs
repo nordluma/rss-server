@@ -17,13 +17,25 @@ pub struct Feed {
 }
 
 pub fn feed(cfg: &mut web::ServiceConfig) {
-    cfg.service(web::resource("/feed").route(web::get().to(get_feeds)));
+    cfg.service(
+        web::resource("/feed")
+            .route(web::get().to(get_feeds))
+            .route(web::post().to(create_feed)),
+    );
 }
 
 pub async fn get_feeds(store: web::Data<Store>) -> HttpResponse {
     let store = store.get_ref().to_owned();
     match store.get_feeds().await {
         Ok(feeds) => HttpResponse::Ok().json(feeds),
+        Err(_) => HttpResponse::InternalServerError().finish(),
+    }
+}
+
+pub async fn create_feed(store: web::Data<Store>) -> HttpResponse {
+    let store = store.get_ref().to_owned();
+    match store.insert_feed().await {
+        Ok(_) => HttpResponse::Created().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
 }
