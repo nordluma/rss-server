@@ -53,9 +53,11 @@ pub async fn get_feeds(store: web::Data<Store>) -> HttpResponse {
     }
 }
 
-pub async fn create_feed(store: web::Data<Store>, _feed: web::Form<NewFeed>) -> HttpResponse {
+pub async fn create_feed(store: web::Data<Store>, feed: web::Form<NewFeed>) -> HttpResponse {
     let store = store.get_ref().to_owned();
-    match store.insert_feed().await {
+    let newfeed = feed.0;
+
+    match store.insert_feed(newfeed.into()).await {
         Ok(_) => HttpResponse::Created().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
