@@ -43,17 +43,16 @@ pub async fn register(user: web::Json<NewAccount>, store: web::Data<Store>) -> H
     let store = store.get_ref().to_owned();
     let account = CreateAccount::new(&user.name);
 
-    match Store::insert_user(store, account).await {
+    match store.insert_user(account).await {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::BadRequest().finish(),
     }
 }
 
-#[allow(unused)]
 pub async fn get_user_by_api_key(api_key: &str, store: web::Data<Store>) -> HttpResponse {
     let store = store.get_ref().to_owned();
 
-    let user = match Store::get_user_by_api_key(store, api_key).await {
+    let user = match store.get_user_by_api_key(api_key).await {
         Ok(user) => user,
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
