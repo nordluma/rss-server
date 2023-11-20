@@ -29,7 +29,7 @@ impl Store {
         })
     }
 
-    pub async fn insert_user(self, account: CreateAccount) -> Result<bool, sqlx::Error> {
+    pub async fn insert_user(&self, account: CreateAccount) -> Result<bool, sqlx::Error> {
         match sqlx::query(
             "INSERT INTO users (id, created_at, updated_at, name, api_key)
             VALUES ($1, $2, $3, $4, encode(random()::text:bytea), 'hex')
@@ -47,7 +47,7 @@ impl Store {
         }
     }
 
-    pub async fn get_users(self) -> Result<Vec<CreateAccount>, sqlx::Error> {
+    pub async fn get_users(&self) -> Result<Vec<CreateAccount>, sqlx::Error> {
         match sqlx::query("SELECT * FROM users")
             .map(|row: PgRow| CreateAccount {
                 id: row.get("id"),
@@ -63,7 +63,7 @@ impl Store {
         }
     }
 
-    pub async fn get_user_by_api_key(self, api_key: &str) -> Result<Option<Account>, sqlx::Error> {
+    pub async fn get_user_by_api_key(&self, api_key: &str) -> Result<Option<Account>, sqlx::Error> {
         match sqlx::query(
             "SELECT id, created_at, updated_at, name, api_key FROM users 
             WHERE api_key = $1",
@@ -84,7 +84,7 @@ impl Store {
         }
     }
 
-    pub async fn get_feeds(self) -> Result<Vec<Feed>, sqlx::Error> {
+    pub async fn get_feeds(&self) -> Result<Vec<Feed>, sqlx::Error> {
         match sqlx::query(
             "SELECT id, created_at, updated_at, name, url, user_id, last_fetched_at
             FROM feeds",
@@ -104,5 +104,9 @@ impl Store {
             Ok(feeds) => Ok(feeds),
             Err(e) => Err(e),
         }
+    }
+
+    pub async fn insert_feed(self) -> Result<(), sqlx::Error> {
+        todo!()
     }
 }
