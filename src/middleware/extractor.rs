@@ -2,9 +2,12 @@ use std::future::{ready, Ready};
 
 use actix_web::{error::ErrorUnauthorized, Error, FromRequest, HttpMessage};
 
-use crate::routes::authentication::Account;
+pub struct Authenticated(ApiKey);
 
-pub struct Authenticated(Account);
+#[derive(Clone)]
+pub struct ApiKey {
+    pub key: String,
+}
 
 impl FromRequest for Authenticated {
     type Error = Error;
@@ -14,7 +17,7 @@ impl FromRequest for Authenticated {
         req: &actix_web::HttpRequest,
         _payload: &mut actix_web::dev::Payload,
     ) -> Self::Future {
-        let user = req.extensions().get::<Account>().cloned();
+        let user = req.extensions().get::<ApiKey>().cloned();
         let res = match user {
             Some(user) => Ok(Authenticated(user)),
             None => Err(ErrorUnauthorized("Invalid token")),
@@ -25,7 +28,7 @@ impl FromRequest for Authenticated {
 }
 
 impl std::ops::Deref for Authenticated {
-    type Target = Account;
+    type Target = ApiKey;
 
     fn deref(&self) -> &Self::Target {
         &self.0
