@@ -106,7 +106,22 @@ impl Store {
         }
     }
 
-    pub async fn insert_feed(self) -> Result<(), sqlx::Error> {
-        todo!()
+    pub async fn insert_feed(self, feed: Feed) -> Result<(), sqlx::Error> {
+        match sqlx::query(
+            "INSERT INTO feeds (id, created_at, updated_at, name, url, user_id)
+            VALUES ( $1, $2, $3, $4, $5, $6)",
+        )
+        .bind(feed.id)
+        .bind(feed.created_at)
+        .bind(feed.updated_at)
+        .bind(feed.name)
+        .bind(feed.url)
+        .bind(feed.user_id)
+        .execute(&self.connection)
+        .await
+        {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e),
+        }
     }
 }
